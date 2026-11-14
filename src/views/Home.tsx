@@ -144,10 +144,12 @@ export function LaunchForm() {
       <div className="field">
         <label htmlFor="f-image">Image link</label>
         <div className="image-row">
-          {preview || f.image ? <img className="thumb" src={preview || f.image} alt="Token image preview" width={44} height={44} /> : <span className="thumb thumb-empty" aria-hidden="true" />}
+          <label className="thumb-pick" title="Preview a file">
+            {preview || f.image ? <img className="thumb" src={preview || f.image} alt="" width={44} height={44} /> : <span className="thumb thumb-empty thumb-add" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24"><path fill="currentColor" d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6z"/></svg></span>}
+            <input type="file" accept="image/*" className="visually-hidden" aria-label="Preview a file" onChange={(e) => { const file = e.target.files?.[0]; if (file) setPreview(URL.createObjectURL(file)); }} />
+          </label>
           <input {...aria("image")} type="url" value={f.image} onChange={set("image")} placeholder="https://… or ipfs://…" inputMode="url" />
         </div>
-        <label className="link-button file-label">Preview a file<input type="file" accept="image/*" className="visually-hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) setPreview(URL.createObjectURL(file)); }} /></label>
         {err("image")}
       </div>
       <div className="field"><label htmlFor="f-initialBuySol">First buy in SOL (optional)</label><input {...aria("initialBuySol")} inputMode="decimal" value={f.initialBuySol} onChange={set("initialBuySol")} placeholder="0.5" />{err("initialBuySol")}</div>

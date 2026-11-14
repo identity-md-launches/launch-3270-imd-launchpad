@@ -61,16 +61,17 @@ Non-custodial. Every launch, trade, approval and payment is signed in the visito
 | Typecheck | `npx tsc --noEmit` | Passed, no errors |
 | Production build | `npm run build` | Passed: dist is 1.8 MB (index 863 kB, Raydium chunk 772 kB) |
 | Logic tests | `npx vitest run` (`test/unit/economics.test.ts`) | 15 passed: splits sum to 100% and conserve units, PIMD split and 70% cap, form validation, exact lamports, metadata, risk, Intake calldata decodes to 0.5 IMD with the right token and body, site labels, intake job id |
-| Interaction tests | `npx vitest run` (`test/unit/ui.test.tsx`, happy-dom, mocked fetch) | 7 passed: first screen has h1 and Create and launch; form validation then review step; Solana sheet opens and closes on Escape; hash routing to every view; Discover tabs, search and watchlist; Swarm live figures and the exact `job.open@job-1` body; revenue split amounts |
-| Design probe | `node .imd/reads/skills/design-critic/scripts/taste.mjs --out test/scratch/taste` | **Did not run.** The sandbox refuses to bind a local port (`listen EPERM 127.0.0.1`). A copy patched to serve files through Playwright routing also failed: headless Chromium closes at launch in this sandbox. No screenshots or rendered measurements exist. |
+| Interaction tests | `npx vitest run` (`test/unit/ui.test.tsx`, happy-dom, mocked fetch) | 9 passed (24 total with logic tests): first screen has h1 and Create and launch; form validation then review step; Solana sheet opens and closes on Escape; hash routing to every view; Discover tabs, search and watchlist; Swarm live figures and the exact `job.open@job-1` body; revenue split amounts; an in-app hash change to `#/swarm?parent=job_abc123` fills the continue field and switches the request to `job.continue@job-1` (fails on the previous code); the image file picker sits on the thumbnail |
+| Design probe | `node .imd/reads/skills/design-critic/scripts/taste.mjs --out test/scratch/taste` (Playwright 1 and Chromium installed in a temp dir outside the repo; missing system libraries extracted from Ubuntu .debs onto `LD_LIBRARY_PATH`) | **Ran, all 16 checks pass**: render, layout (no horizontal scroll at 320, 390 or 1440), targets, contrast, casing, tracking, eyebrows, type-sizes (4 at 390), type-faces, glyphs, slogans, repetition, copy-budget, chrome, motion, share. The 390 screenshot shows the header with Connect fully visible, the headline, and the Create a token form down to Create and launch. |
+| Rendered measurement | Playwright script in `test/scratch/` across #/, #/discover, #/swarm, #/pimd, #/rewards, #/portfolio, #/token/<mint> at 320 and 390 | `scrollWidth` equals the viewport on every route; Connect ends at 304px (320) and 374px (390); Create and launch spans 781-825px at 390×844. In Chromium, going from `#/swarm` to `#/swarm?parent=job_abc123` fills `#sw-parent` and the request reads `job.continue@job-1`. |
 
 A bug the tests found and that is fixed: a search started from the "Launched here" tab was overwritten by the trending fetch (`src/views/Discover.tsx:41-60`, now a separate `search` state).
 
-Not performed here: live signing (no wallet extension on this machine), Devnet launch and trade, a mainnet Swarm payment (not authorised), and any rendered check at 320, 390 or 1440 wide. Before mainnet, launch and trade one token on Devnet with Phantom.
+Not performed here: live signing (no wallet extension on this machine), Devnet launch and trade, a mainnet Swarm payment (not authorised), and a screen-reader walk. Before mainnet, launch and trade one token on Devnet with Phantom.
 
 ## Better Interface review
 
-Coverage: the guide's contents and its accessibility core principles were read. The six domains were applied while building and reviewed in source only ("without a browser" checks). Rendered checks (contrast measurement, zoom, screen-reader walk, layout at each width) were not performed because no browser could run.
+Coverage: the guide's contents and its accessibility core principles were read. The six domains were applied while building and reviewed in source ("without a browser" checks). Rendered checks now ran in headless Chromium through the design probe (contrast, layout at 320/390/1440, targets, type). Zoom and a screen-reader walk were not performed.
 
 - **Accessibility**: native buttons, links, radios and selects; every input has a label; errors use `aria-invalid` + `aria-describedby` and focus the first invalid field (`src/views/Home.tsx:56-60`); dialogs have `aria-modal`, a labelled title, Escape and backdrop close (`src/solctx.tsx:70-95`); skip link; `:focus-visible` 2px lime ring; progress bar and tabs carry roles and state; the route change moves focus to `main` (`src/App.tsx:26`).
 - **Layout**: mobile first, product and main action in the first screen, 72rem wrap, grid collapses to one column, long addresses wrap (`src/styles.css` `.mono-wrap`), nav scrolls sideways.
@@ -78,6 +79,13 @@ Coverage: the guide's contents and its accessibility core principles were read. 
 - **Typography**: six sizes, three weights, tabular numbers for figures, balanced headings.
 - **Colors**: existing palette kept; status colors pair with text ("Confirmed", "+5.2%", risk words), never color alone.
 - **UI**: 44px controls (36px small), 48px sheet rows, press feedback with a reduced-motion fallback, disabled and pending states on every signing control, skeleton rows while loading.
+
+Revision fixes (reviewer findings, each reproduced first):
+- Header ran past the screen at 320 and 390 and cut Connect. Under 30rem the brand name is now visually hidden (the link keeps its accessible name) (`src/styles.css:72`).
+- "Build the next version" left the continue field empty because the Swarm view stays mounted when only the query changes. `BuildForm` now re-reads `parent`, `name`, `symbol` and `mint` on `hashchange` (`src/views/Swarm.tsx`, `BuildForm`).
+- A Swarm tracker wrote back a stale orders list and could drop a newer paid job. It now uses the functional setter, which reads the latest stored list (`src/views/Swarm.tsx`, `JobTracker`).
+- Create and launch sat under the fold at 390×844. The thumbnail is now the file picker (the separate line is gone) and the hero's bottom padding is 16px under 40rem. The button moved from 819px to 781px.
+- Found by the probe once it ran: at 320 a long ticker widened the token list to 387px (`.token-name strong` now truncates, and `.token-list` and `.token-row` get `min-inline-size:0`). The active nav tab was a filled pill read as a kicker above the h1, so it now uses an underline like `.tab`.
 
 Findings fixed during review: the search-tab bug above; Swarm `body` typed so `job.continue` carries `parentJobId` (`src/views/Swarm.tsx:99`).
 

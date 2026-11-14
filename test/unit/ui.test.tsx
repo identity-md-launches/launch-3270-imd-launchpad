@@ -99,6 +99,19 @@ describe("swarm and rewards", () => {
     expect(JSON.parse(pre)).toMatchObject({ action: "job.open@job-1", body: { skill: "build-website", ipfs: "harbor-cat" } });
     expect(screen.getAllByRole("button", { name: "Connect Ethereum wallet" }).length).toBeGreaterThan(0);
   });
+  it("fills the continue field when an in-app link adds ?parent= to #/swarm", async () => {
+    mount("#/swarm");
+    await screen.findByLabelText("Continue an earlier job (optional)");
+    act(() => { location.hash = "#/swarm?parent=job_abc123"; window.dispatchEvent(new HashChangeEvent("hashchange")); });
+    await waitFor(() => expect((screen.getByLabelText("Continue an earlier job (optional)") as HTMLInputElement).value).toBe("job_abc123"));
+    const pre = JSON.parse(document.querySelector("pre.code")!.textContent!);
+    expect(pre.action).toBe("job.continue@job-1");
+  });
+  it("offers the image file picker on the thumbnail", async () => {
+    mount();
+    const picker = await screen.findByLabelText("Preview a file");
+    expect((picker as HTMLInputElement).type).toBe("file");
+  });
   it("splits revenue as the brief specifies", async () => {
     mount("#/rewards");
     const input = await screen.findByLabelText("Eligible net platform revenue (USD)");

@@ -63,8 +63,18 @@ function BuildForm() {
   const p = qs();
   const [kind, setKind] = useState<SwarmKind>("project");
   const [idea, setIdea] = useState("");
-  const [token] = useState({ name: p.get("name") ?? "", symbol: p.get("symbol") ?? "", mint: p.get("mint") ?? "" });
+  const [token, setToken] = useState({ name: p.get("name") ?? "", symbol: p.get("symbol") ?? "", mint: p.get("mint") ?? "" });
   const [parent, setParent] = useState(p.get("parent") ?? "");
+  // The view stays mounted when only the query changes (e.g. "Build the next version"), so re-read it.
+  useEffect(() => {
+    const on = () => {
+      const q = qs();
+      setParent(q.get("parent") ?? "");
+      setToken({ name: q.get("name") ?? "", symbol: q.get("symbol") ?? "", mint: q.get("mint") ?? "" });
+    };
+    addEventListener("hashchange", on);
+    return () => removeEventListener("hashchange", on);
+  }, []);
   const [step, setStep] = useState<Step>("idle");
   const [err, setErr] = useState("");
   const [confirm, setConfirm] = useState(false);
@@ -156,7 +166,7 @@ function JobTracker({ order }: { order: SwarmOrder }) {
   const [job, setJob] = useState<Job | null>(null);
   const [result, setResult] = useState<JobResult | null>(null);
   const [note, setNote] = useState("Waiting for the network to see the payment…");
-  const [orders, setOrders] = useLocal<SwarmOrder[]>("swarm-orders", []);
+  const [, setOrders] = useLocal<SwarmOrder[]>("swarm-orders", []);
   useEffect(() => {
     let alive = true; let timer: ReturnType<typeof setTimeout>;
     const poll = async () => {
@@ -167,7 +177,7 @@ function JobTracker({ order }: { order: SwarmOrder }) {
           const entry = r?.entries?.[0];
           if (entry?.state === "refused") { setNote(`The network refused the request: ${entry.reason ?? "no reason given"}.`); return; }
           id = jobIdFromIntake(r);
-          if (id && alive) { setJobId(id); setOrders(orders.map((o) => (o.tx === order.tx ? { ...o, jobId: id! } : o))); }
+          if (id && alive) { setJobId(id); setOrders((list) => list.map((o) => (o.tx === order.tx ? { ...o, jobId: id! } : o))); }
         }
         if (id) {
           const j = await fetchJob(id);
