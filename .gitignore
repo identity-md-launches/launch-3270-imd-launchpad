@@ -1,0 +1,8 @@
+node_modules/
+.cache/
+.npm/
+.claude/
+.imd/
+test/scratch/
+*.tgz
+.DS_Store
