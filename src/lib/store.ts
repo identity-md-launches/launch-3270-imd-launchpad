@@ -23,7 +23,9 @@ export type Launched = { mint: string; name: string; symbol: string; image: stri
 export type Trade = { mint: string; symbol: string; side: "buy" | "sell"; amount: string; sig: string; cluster: "devnet" | "mainnet"; at: number };
 export type Note = { id: string; text: string; at: number; href?: string; read?: boolean };
 export type Comment = { id: string; mint: string; author: string; text: string; at: number };
-export type SwarmOrder = { tx: string; jobId?: string; kind: string; objective: string; at: number; state?: string };
+export type SwarmOrder = { tx: string; jobId?: string; kind: string; objective: string; at: number; state?: string; fp?: string; payer?: string };
+/** A payment the wallet has sent but the chain hasn't confirmed yet. Kept so a reload resumes it instead of paying again. */
+export type PendingPayment = { tx: `0x${string}`; fp: string; kind: string; objective: string; at: number; payer: string };
 
 export function notify(text: string, href?: string) {
   const list = readLocal<Note[]>("notes", []);

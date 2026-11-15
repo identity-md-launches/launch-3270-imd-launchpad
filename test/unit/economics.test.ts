@@ -64,7 +64,7 @@ describe("IMD Swarm request", () => {
     const data = encodeFunctionData({ abi: INTAKE_ABI, functionName: "request", args: [actionId("job.open"), encodeBody(body), NO_CALLBACK, IMD_TOKEN, SWARM_FEE_WEI] });
     const d = decodeFunctionData({ abi: INTAKE_ABI, data });
     expect(d.args[4]).toBe(500000000000000000n);
-    expect(d.args[3].toLowerCase()).toBe(IMD_TOKEN);
+    expect(String(d.args[3]).toLowerCase()).toBe(IMD_TOKEN);
     expect(JSON.parse(hexToString(d.args[1] as `0x${string}`))).toEqual(body);
     expect(IMD_INTAKE).toBe("0xa43e6f75ee006411f79ac1c84120606c2330de82");
   });

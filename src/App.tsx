@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { useSol, SolConnectButton } from "./solctx";
+import { useSol } from "./solctx";
+import { WalletButton, WalletSheet } from "./wallet/WalletSheet";
 import { useLocal, type Note } from "./lib/store";
 import { Home } from "./views/Home";
 import { Discover } from "./views/Discover";
@@ -63,7 +64,7 @@ export function App() {
               <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22Zm7-6V11a7 7 0 0 0-5.5-6.84V3.5a1.5 1.5 0 0 0-3 0v.66A7 7 0 0 0 5 11v5l-2 2v1h18v-1l-2-2Z"/></svg>
               {unread > 0 && <span className="badge num">{unread}</span>}
             </a>
-            <SolConnectButton compact />
+            <WalletButton />
           </div>
         </div>
         <nav className="wrap nav" aria-label="Main">
@@ -72,6 +73,7 @@ export function App() {
       </header>
       {cluster === "mainnet" && <div className="banner" role="note"><div className="wrap">Mainnet: launches and trades use real SOL.</div></div>}
       <main id="main" tabIndex={-1}>{view}</main>
+      <WalletSheet />
       <footer className="footer">
         <div className="wrap footer-row">
           <p>IMD Launchpad. Idea in. Ecosystem out.</p>

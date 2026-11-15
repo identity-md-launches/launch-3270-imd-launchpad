@@ -2,80 +2,68 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 import { DEFAULT_CLUSTER, type SolanaCluster } from "./config";
 import { SOL_WALLETS, shortKey, type SolProvider, type SolWallet } from "./lib/solana";
 import { readLocal, writeLocal } from "./lib/store";
-import { iconSrc } from "./wallet/wallet-icons";
 
-type Ctx = { cluster: SolanaCluster; setCluster: (c: SolanaCluster) => void; address: string | null; provider: SolProvider | null; walletName: string | null; openConnect: () => void; disconnect: () => void };
+export type SheetFocus = "all" | "eth" | "sol";
+type Ctx = {
+  cluster: SolanaCluster; setCluster: (c: SolanaCluster) => void;
+  address: string | null; provider: SolProvider | null; walletName: string | null; walletId: SolWallet["id"] | null;
+  /** Opens the shared wallet sheet with the Solana group first (kept for the launch, trade and portfolio views). */
+  openConnect: () => void;
+  openWallets: (focus?: SheetFocus) => void; closeWallets: () => void; sheet: SheetFocus | null;
+  connectSol: (id: SolWallet["id"]) => Promise<void>; disconnect: () => void; pending: string | null; err: string;
+};
 const SolCtx = createContext<Ctx>(null as unknown as Ctx);
 export const useSol = () => useContext(SolCtx);
 
+/**
+ * Solana wallet state (Phantom, Solflare). It is separate from the Ethereum state in wagmi, so a
+ * visitor can hold one wallet of each at once and neither replaces the other.
+ */
 export function SolanaProvider({ children }: { children: ReactNode }) {
   const [cluster, setClusterState] = useState<SolanaCluster>(() => readLocal("cluster", DEFAULT_CLUSTER));
   const [wallet, setWallet] = useState<SolWallet | null>(null);
   const [address, setAddress] = useState<string | null>(null);
-  const [open, setOpen] = useState(false);
+  const [sheet, setSheet] = useState<SheetFocus | null>(null);
   const [err, setErr] = useState("");
   const [pending, setPending] = useState<string | null>(null);
   const setCluster = (c: SolanaCluster) => { setClusterState(c); writeLocal("cluster", c); };
 
-  // Reconnect silently to a wallet the visitor already trusted.
+  // Reconnect silently only to the wallet the visitor chose last, and only if it already trusts the site.
   useEffect(() => {
     const last = readLocal<string | null>("solwallet", null);
     const w = SOL_WALLETS.find((x) => x.id === last);
     const p = w?.provider();
     if (w && p) p.connect({ onlyIfTrusted: true }).then(() => { if (p.publicKey) { setWallet(w); setAddress(p.publicKey.toBase58()); } }).catch(() => {});
   }, []);
-  useEffect(() => {
-    if (!open) return;
-    const k = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
-    addEventListener("keydown", k); return () => removeEventListener("keydown", k);
-  }, [open]);
 
-  async function connect(w: SolWallet) {
-    const p = w.provider();
-    if (!p) return;
+  async function connectSol(id: SolWallet["id"]) {
+    const w = SOL_WALLETS.find((x) => x.id === id);
+    const p = w?.provider();
+    if (!w || !p) return;
     setErr(""); setPending(w.id);
     try {
+      if (wallet && wallet.id !== w.id) await wallet.provider()?.disconnect().catch(() => {});
       await p.connect();
       if (!p.publicKey) throw new Error("no key");
-      setWallet(w); setAddress(p.publicKey.toBase58()); writeLocal("solwallet", w.id); setOpen(false);
+      setWallet(w); setAddress(p.publicKey.toBase58()); writeLocal("solwallet", w.id);
       p.on?.("accountChanged", () => setAddress(p.publicKey?.toBase58() ?? null));
     } catch { setErr(`${w.name} didn't connect. Approve the request in the wallet, or pick another.`); }
     finally { setPending(null); }
   }
   const disconnect = () => { wallet?.provider()?.disconnect().catch(() => {}); setWallet(null); setAddress(null); writeLocal("solwallet", null); };
-  const mobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const openWallets = (focus: SheetFocus = "all") => { setErr(""); setSheet(focus); };
 
   return (
-    <SolCtx.Provider value={{ cluster, setCluster, address, provider: wallet?.provider() ?? null, walletName: wallet?.name ?? null, openConnect: () => setOpen(true), disconnect }}>
+    <SolCtx.Provider value={{ cluster, setCluster, address, provider: wallet?.provider() ?? null, walletName: wallet?.name ?? null, walletId: wallet?.id ?? null,
+      openConnect: () => openWallets("sol"), openWallets, closeWallets: () => setSheet(null), sheet, connectSol, disconnect, pending, err }}>
       {children}
-      {open && (
-        <div className="sheet-bg" onClick={() => setOpen(false)}>
-          <div className="sheet" role="dialog" aria-modal="true" aria-labelledby="sol-sheet-title" onClick={(e) => e.stopPropagation()}>
-            <div className="sheet-head"><h2 id="sol-sheet-title">Connect a Solana wallet</h2><button type="button" className="x" aria-label="Close" onClick={() => setOpen(false)}>×</button></div>
-            {SOL_WALLETS.map((w) => {
-              const has = !!w.provider();
-              if (has) return (
-                <button type="button" key={w.id} className="sheet-row" onClick={() => connect(w)} disabled={!!pending}>
-                  <img className="ic" width={28} height={28} src={iconSrc(w.id)} alt="" /><span>{w.name}{pending === w.id ? " · opening…" : ""}</span>
-                </button>
-              );
-              return (
-                <a key={w.id} className="sheet-row" href={mobile ? w.browse(location.href) : w.install} target={mobile ? undefined : "_blank"} rel="noreferrer">
-                  <img className="ic" width={28} height={28} src={iconSrc(w.id)} alt="" /><span>{mobile ? `Open in ${w.name}` : `Install ${w.name}`}</span>
-                </a>
-              );
-            })}
-            {err && <p className="hint hint-warn" role="status">{err}</p>}
-            <p className="hint">You sign every transaction in your wallet. The site never sees your keys.</p>
-          </div>
-        </div>
-      )}
     </SolCtx.Provider>
   );
 }
 
+/** A Solana-only control used inside the launch and trade forms. */
 export function SolConnectButton({ compact }: { compact?: boolean }) {
-  const { address, openConnect, disconnect } = useSol();
-  if (address) return <button type="button" className={`button ${compact ? "button-small" : ""}`} onClick={disconnect} title="Disconnect"><span className="num">{shortKey(address)}</span><span className="visually-hidden"> Disconnect</span></button>;
-  return <button type="button" className={`button button-primary ${compact ? "button-small" : ""}`} onClick={openConnect}>Connect</button>;
+  const { address, openConnect } = useSol();
+  if (address) return <button type="button" className={`button ${compact ? "button-small" : ""}`} onClick={openConnect}><span className="num">{shortKey(address)}</span><span className="visually-hidden"> Solana wallet, manage</span></button>;
+  return <button type="button" className={`button button-primary ${compact ? "button-small" : ""}`} onClick={openConnect}>Connect Solana wallet</button>;
 }

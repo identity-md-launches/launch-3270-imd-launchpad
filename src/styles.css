@@ -185,3 +185,27 @@ fieldset{border:0;margin:0;padding:0;min-inline-size:0}
 /* Footer */
 .footer{border-block-start:1px solid var(--color-border);margin-block-start:var(--space-12);padding-block:var(--space-8);font-size:var(--text-sm)}
 .footer-row{display:grid;gap:var(--space-2)}
+/* Wallet sheet: Ethereum and Solana groups, each with its own account card */
+.sheet-wallets{max-block-size:92dvh;overflow-y:auto;overscroll-behavior:contain;gap:var(--space-4)}
+.wallet-group{display:grid;gap:var(--space-2)}
+.wallet-group h3{font-size:var(--text-sm);font-weight:600}
+.wallet-group h3 .muted{font-weight:400}
+.row-name{flex:1;min-inline-size:0}
+.row-tag{font-size:var(--text-sm);font-weight:400;color:var(--color-text-secondary)}
+.account{display:grid;gap:var(--space-2);padding:var(--space-3);border-radius:var(--radius-control);background:var(--color-bg)}
+.account-head{display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap}
+.account-head strong{flex:1;min-inline-size:0}
+.chain-dot{inline-size:8px;block-size:8px;border-radius:50%;flex:none}
+.chain-eth{background:var(--violet-300)}
+.chain-sol{background:var(--teal-300)}
+.chain-dot+.chain-dot{margin-inline-start:calc(var(--space-2) * -1 + 2px)}
+@media (max-width:22.49rem){.wallet-word{position:absolute;inline-size:1px;block-size:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}}
+/* Swarm payment steps */
+.flow{display:grid;gap:var(--space-2);font-size:var(--text-sm)}
+.flow-step{display:flex;gap:var(--space-3);align-items:flex-start}
+.flow-step>span:last-child{display:grid;min-inline-size:0}
+.flow-n{display:inline-grid;place-items:center;inline-size:24px;block-size:24px;border-radius:50%;border:1px solid var(--color-border);color:var(--color-text-secondary);flex:none;font-weight:600}
+.flow-done .flow-n{background:var(--color-accent);border-color:var(--color-accent);color:var(--color-on-accent)}
+.flow-now .flow-n{border-color:var(--color-accent);color:var(--color-text)}
+.flow-stop .flow-n{border-color:var(--color-error);color:var(--color-error)}
+.flow-stop .muted{color:var(--color-error)}

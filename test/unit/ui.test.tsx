@@ -57,11 +57,11 @@ describe("launch page", () => {
     expect(await screen.findByRole("heading", { name: "Review and sign" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Connect to launch" })).toBeTruthy();
   });
-  it("opens the Solana wallet sheet and closes it with Escape", async () => {
+  it("opens the wallet sheet with all four wallets and closes it with Escape", async () => {
     mount();
-    fireEvent.click(screen.getByRole("button", { name: "Connect" }));
-    expect(screen.getByRole("dialog", { name: "Connect a Solana wallet" })).toBeTruthy();
-    expect(screen.getByText(/Phantom/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Connect wallet" }));
+    expect(screen.getByRole("dialog", { name: "Connect wallet" })).toBeTruthy();
+    for (const n of [/MetaMask/, /Rabby Wallet/, /Phantom/, /Solflare/]) expect(screen.getByRole("link", { name: n })).toBeTruthy();
     fireEvent.keyDown(window, { key: "Escape" });
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   });
@@ -97,7 +97,7 @@ describe("swarm and rewards", () => {
     fireEvent.click(screen.getByRole("radio", { name: /^Website/ }));
     const pre = document.querySelector("pre.code")!.textContent!;
     expect(JSON.parse(pre)).toMatchObject({ action: "job.open@job-1", body: { skill: "build-website", ipfs: "harbor-cat" } });
-    expect(screen.getAllByRole("button", { name: "Connect Ethereum wallet" }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("button", { name: "Connect MetaMask or Rabby" }).length).toBeGreaterThan(0);
   });
   it("fills the continue field when an in-app link adds ?parent= to #/swarm", async () => {
     mount("#/swarm");
